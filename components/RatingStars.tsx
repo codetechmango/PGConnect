@@ -46,7 +46,7 @@ export default function RatingStars({
     }
   };
 
-  const handleStarHover = (starRating: number) => {
+  const handleStarHover = (_starRating: number) => {
     // Could add hover preview functionality here
   };
 

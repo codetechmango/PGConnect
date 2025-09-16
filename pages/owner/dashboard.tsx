@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { supabase, getCurrentUser } from '../../lib/supabaseClient';
-import { PG, User, FormData } from '../../types';
+import { PG, FormData } from '../../types';
+import { User } from '@supabase/supabase-js';
 import OwnerForm from '../../components/OwnerForm';
 import PGCard from '../../components/PGCard';
 import {
@@ -33,42 +34,7 @@ export default function OwnerDashboard() {
     occupancyRate: 0
   });
 
-  useEffect(() => {
-    checkUserAndLoadData();
-  }, []);
-
-  const checkUserAndLoadData = async () => {
-    try {
-      const { user } = await getCurrentUser();
-      
-      if (!user) {
-        router.push('/auth/signin?redirect=/owner/dashboard');
-        return;
-      }
-
-      // Check if user is an owner
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.is_owner) {
-        router.push('/owner/register');
-        return;
-      }
-
-      setUser(user);
-      await loadOwnerPGs(user.id);
-      await loadStats(user.id);
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadOwnerPGs = async (userId: string) => {
+  const loadOwnerPGs = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('pgs')
@@ -81,9 +47,9 @@ export default function OwnerDashboard() {
     } catch (error) {
       console.error('Error loading PGs:', error);
     }
-  };
+  }, []);
 
-  const loadStats = async (userId: string) => {
+  const loadStats = useCallback(async (userId: string) => {
     try {
       // Get total PGs count
       const { count: totalPGs } = await supabase
@@ -119,21 +85,60 @@ export default function OwnerDashboard() {
     } catch (error) {
       console.error('Error loading stats:', error);
     }
-  };
+  }, [pgs]);
 
-  const handleCreatePG = async (formData: FormData & { images: string[] }) => {
+  const checkUserAndLoadData = useCallback(async () => {
+    try {
+      const { user: currentUser } = await getCurrentUser();
+      
+      if (!currentUser) {
+        router.push('/auth/signin?redirect=/owner/dashboard');
+        return;
+      }
+
+      // Check if user is an owner
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (!profile?.is_owner) {
+        router.push('/owner/register');
+        return;
+      }
+
+      setUser(currentUser);
+      await loadOwnerPGs(currentUser.id);
+      await loadStats(currentUser.id);
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [router, loadOwnerPGs, loadStats]);
+
+  useEffect(() => {
+    checkUserAndLoadData();
+  }, [checkUserAndLoadData]);
+
+
+  const handleCreatePG = async (formData: FormData) => {
     if (!user) return;
 
     setFormLoading(true);
     try {
       const { data, error } = await supabase
         .from('pgs')
-        .insert({
+        .insert([{
           ...formData,
           owner_id: user.id,
           rating: 0,
           total_reviews: 0,
-        })
+          images: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
         .select()
         .single();
 
@@ -142,19 +147,16 @@ export default function OwnerDashboard() {
       setPgs(prev => [data, ...prev]);
       setShowCreateForm(false);
       alert('PG listing created successfully!');
-      
-      // Reload stats
-      await loadStats(user.id);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating PG:', error);
-      alert(error.message || 'Failed to create PG listing');
+      alert(error instanceof Error ? error.message : 'Failed to create PG listing');
     } finally {
       setFormLoading(false);
     }
   };
 
-  const handleUpdatePG = async (formData: FormData & { images: string[] }) => {
-    if (!editingPG || !user) return;
+  const handleUpdatePG = async (formData: FormData) => {
+    if (!editingPG) return;
 
     setFormLoading(true);
     try {
@@ -173,18 +175,16 @@ export default function OwnerDashboard() {
       setPgs(prev => prev.map(pg => pg.id === editingPG.id ? data : pg));
       setEditingPG(null);
       alert('PG listing updated successfully!');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating PG:', error);
-      alert(error.message || 'Failed to update PG listing');
+      alert(error instanceof Error ? error.message : 'Failed to update PG listing');
     } finally {
       setFormLoading(false);
     }
   };
 
   const handleDeletePG = async (pgId: string) => {
-    if (!confirm('Are you sure you want to delete this PG listing? This action cannot be undone.')) {
-      return;
-    }
+    if (!confirm('Are you sure you want to delete this PG listing?')) return;
 
     try {
       const { error } = await supabase
@@ -196,12 +196,9 @@ export default function OwnerDashboard() {
 
       setPgs(prev => prev.filter(pg => pg.id !== pgId));
       alert('PG listing deleted successfully!');
-      
-      // Reload stats
-      if (user) await loadStats(user.id);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting PG:', error);
-      alert(error.message || 'Failed to delete PG listing');
+      alert(error instanceof Error ? error.message : 'Failed to delete PG listing');
     }
   };
 
@@ -213,193 +210,134 @@ export default function OwnerDashboard() {
     );
   }
 
-  if (showCreateForm) {
-    return (
-      <>
-        <Head>
-          <title>Create New PG Listing - Owner Dashboard</title>
-        </Head>
-        <div className="min-h-screen bg-gray-50 py-8">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">Create New PG Listing</h1>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-            </div>
-            <OwnerForm
-              onSubmit={handleCreatePG}
-              loading={formLoading}
-              mode="create"
-            />
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  if (editingPG) {
-    return (
-      <>
-        <Head>
-          <title>Edit PG Listing - Owner Dashboard</title>
-        </Head>
-        <div className="min-h-screen bg-gray-50 py-8">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">Edit PG Listing</h1>
-              <button
-                onClick={() => setEditingPG(null)}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-            </div>
-            <OwnerForm
-              onSubmit={handleUpdatePG}
-              initialData={editingPG}
-              loading={formLoading}
-              mode="edit"
-            />
-          </div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <Head>
         <title>Owner Dashboard - PG Finder</title>
-        <meta name="description" content="Manage your PG listings and bookings" />
+        <meta name="description" content="Manage your PG listings and track bookings" />
       </Head>
 
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
-              <p className="text-gray-600 mt-1">
-                Welcome back! Manage your PG listings and track your performance.
-              </p>
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
+                <p className="text-gray-600 mt-1">
+                  Welcome back, {user?.email}!
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <PlusIcon className="h-5 w-5" />
+                <span>Add New PG</span>
+              </button>
             </div>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <PlusIcon className="h-5 w-5" />
-              <span>Add New PG</span>
-            </button>
           </div>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center">
-                <BuildingOfficeIcon className="h-10 w-10 text-blue-600" />
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <BuildingOfficeIcon className="h-6 w-6 text-blue-600" />
+                </div>
                 <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{stats.totalPGs}</h3>
-                  <p className="text-sm text-gray-600">Total PGs</p>
+                  <p className="text-sm font-medium text-gray-600">Total PGs</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalPGs}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center">
-                <UsersIcon className="h-10 w-10 text-green-600" />
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <UsersIcon className="h-6 w-6 text-green-600" />
+                </div>
                 <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{stats.totalBookings}</h3>
-                  <p className="text-sm text-gray-600">Total Bookings</p>
+                  <p className="text-sm font-medium text-gray-600">Total Bookings</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalBookings}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center">
-                <CurrencyRupeeIcon className="h-10 w-10 text-yellow-600" />
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <CurrencyRupeeIcon className="h-6 w-6 text-yellow-600" />
+                </div>
                 <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    ₹{stats.totalRevenue.toLocaleString()}
-                  </h3>
-                  <p className="text-sm text-gray-600">Total Revenue</p>
+                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{stats.totalRevenue.toLocaleString()}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center">
-                <ChartBarIcon className="h-10 w-10 text-purple-600" />
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <ChartBarIcon className="h-6 w-6 text-purple-600" />
+                </div>
                 <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {stats.occupancyRate.toFixed(1)}%
-                  </h3>
-                  <p className="text-sm text-gray-600">Occupancy Rate</p>
+                  <p className="text-sm font-medium text-gray-600">Occupancy Rate</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.occupancyRate.toFixed(1)}%</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* PG Listings */}
-          <div className="bg-white rounded-lg shadow-md">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Your PG Listings</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Your PG Listings</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Manage your properties and track their performance
+              </p>
             </div>
 
             {pgs.length === 0 ? (
-              <div className="text-center py-12">
-                <BuildingOfficeIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <div className="p-12 text-center">
+                <BuildingOfficeIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No PG listings yet</h3>
                 <p className="text-gray-600 mb-6">
-                  Create your first PG listing to start receiving bookings
+                  Create your first PG listing to start receiving bookings from potential tenants.
                 </p>
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
+                  <PlusIcon className="h-5 w-5 mr-2" />
                   Create Your First PG
                 </button>
               </div>
             ) : (
               <div className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {pgs.map((pg) => (
                     <div key={pg.id} className="relative">
-                      <PGCard pg={pg} />
-                      
-                      {/* Action Buttons Overlay */}
-                      <div className="absolute top-3 left-3 flex space-x-2">
-                        <Link href={`/pg/${pg.id}`}>
-                          <button className="p-2 bg-white bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all">
-                            <EyeIcon className="h-4 w-4 text-gray-600" />
-                          </button>
+                      <PGCard pg={pg} variant="compact" />
+                      <div className="absolute top-2 right-2 flex space-x-1">
+                        <Link
+                          href={`/pg/${pg.id}`}
+                          className="p-1.5 bg-white bg-opacity-90 rounded-full shadow-sm hover:bg-opacity-100 transition-all"
+                        >
+                          <EyeIcon className="h-4 w-4 text-gray-600" />
                         </Link>
                         <button
                           onClick={() => setEditingPG(pg)}
-                          className="p-2 bg-white bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all"
+                          className="p-1.5 bg-white bg-opacity-90 rounded-full shadow-sm hover:bg-opacity-100 transition-all"
                         >
                           <PencilIcon className="h-4 w-4 text-blue-600" />
                         </button>
                         <button
                           onClick={() => handleDeletePG(pg.id)}
-                          className="p-2 bg-white bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all"
+                          className="p-1.5 bg-white bg-opacity-90 rounded-full shadow-sm hover:bg-opacity-100 transition-all"
                         >
                           <TrashIcon className="h-4 w-4 text-red-600" />
                         </button>
-                      </div>
-
-                      {/* Status Badge */}
-                      <div className="absolute bottom-3 right-3">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          pg.available_rooms > 0 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {pg.available_rooms > 0 ? 'Available' : 'Full'}
-                        </span>
                       </div>
                     </div>
                   ))}
@@ -408,6 +346,63 @@ export default function OwnerDashboard() {
             )}
           </div>
         </div>
+
+        {/* Create PG Modal */}
+        {showCreateForm && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">Create New PG Listing</h3>
+                    <button
+                      onClick={() => setShowCreateForm(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <XMarkIcon className="h-6 w-6" />
+                    </button>
+                  </div>
+                  <OwnerForm
+                    onSubmit={handleCreatePG}
+                    loading={formLoading}
+                    mode="create"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit PG Modal */}
+        {editingPG && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">Edit PG Listing</h3>
+                    <button
+                      onClick={() => setEditingPG(null)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <XMarkIcon className="h-6 w-6" />
+                    </button>
+                  </div>
+                  <OwnerForm
+                    initialData={editingPG}
+                    onSubmit={handleUpdatePG}
+                    loading={formLoading}
+                    mode="edit"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

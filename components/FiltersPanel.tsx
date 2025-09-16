@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { SearchFilters } from '../types';
 import { 
-  AdjustmentsHorizontalIcon,
   FunnelIcon,
-  XMarkIcon,
   ChevronDownIcon,
   ChevronUpIcon
 } from '@heroicons/react/24/outline';

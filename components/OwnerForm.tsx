@@ -6,7 +6,6 @@ import {
   BuildingOfficeIcon,
   MapPinIcon,
   CurrencyRupeeIcon,
-  UserGroupIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
 
@@ -67,8 +66,7 @@ export default function OwnerForm({
   const {
     register,
     handleSubmit,
-    formState: { errors },
-    watch
+    formState: { errors }
   } = useForm<FormData>({
     defaultValues: initialData
   });

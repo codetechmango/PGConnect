@@ -1,21 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useForm } from 'react-hook-form';
 import { supabase, getCurrentUser } from '../../lib/supabaseClient';
-import { User } from '../../types';
+import { OwnerRegistrationForm } from '../../types';
+import { User } from '@supabase/supabase-js';
 import { 
   UserIcon, 
-  PhoneIcon, 
   CheckCircleIcon,
-  ExclamationTriangleIcon 
+  ExclamationTriangleIcon,
+  PhoneIcon
 } from '@heroicons/react/24/outline';
-
-interface OwnerRegistrationForm {
-  full_name: string;
-  phone: string;
-  agree_terms: boolean;
-}
 
 export default function OwnerRegisterPage() {
   const router = useRouter();
@@ -25,32 +20,24 @@ export default function OwnerRegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors }
-  } = useForm<OwnerRegistrationForm>();
+  const { register, handleSubmit, formState: { errors } } = useForm<OwnerRegistrationForm>();
 
-  useEffect(() => {
-    checkUserAndRedirect();
-  }, []);
-
-  const checkUserAndRedirect = async () => {
+  const checkUserStatus = useCallback(async () => {
     try {
-      const { user } = await getCurrentUser();
+      const { user: currentUser } = await getCurrentUser();
       
-      if (!user) {
+      if (!currentUser) {
         router.push('/auth/signin?redirect=/owner/register');
         return;
       }
 
-      setUser(user);
+      setUser(currentUser);
 
       // Check if user is already an owner
       const { data: profile } = await supabase
         .from('profiles')
         .select('is_owner')
-        .eq('id', user.id)
+        .eq('id', currentUser.id)
         .single();
 
       if (profile?.is_owner) {
@@ -62,23 +49,27 @@ export default function OwnerRegisterPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  const onSubmit = async (formData: OwnerRegistrationForm) => {
+  useEffect(() => {
+    checkUserStatus();
+  }, [checkUserStatus]);
+
+  const onSubmit = async (data: OwnerRegistrationForm) => {
     if (!user) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      // Update user profile to include owner information
+      // Update profile to mark as owner
       const { error: updateError } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
           email: user.email,
-          full_name: formData.full_name,
-          phone: formData.phone,
+          full_name: data.full_name,
+          phone: data.phone,
           is_owner: true,
           updated_at: new Date().toISOString()
         });
@@ -87,14 +78,13 @@ export default function OwnerRegisterPage() {
 
       setSuccess(true);
       
-      // Redirect to dashboard after a brief delay
+      // Redirect to dashboard after success
       setTimeout(() => {
         router.push('/owner/dashboard');
       }, 2000);
-
-    } catch (error: any) {
+    } catch (error) {
       console.error('Registration error:', error);
-      setError(error.message || 'Failed to register as owner');
+      setError(error instanceof Error ? error.message : 'Failed to register as owner');
     } finally {
       setSubmitting(false);
     }
@@ -181,26 +171,14 @@ export default function OwnerRegisterPage() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
+                <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="flex items-center space-x-2">
+                    <UserIcon className="h-4 w-4" />
+                    <span>Full Name</span>
+                  </div>
                 </label>
                 <input
-                  type="email"
-                  value={user?.email || ''}
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  This is your registered email address
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name *
-                </label>
-                <input
-                  {...register('full_name', { 
+                  {...register('full_name', {
                     required: 'Full name is required',
                     minLength: { value: 2, message: 'Name must be at least 2 characters' }
                   })}
@@ -214,75 +192,68 @@ export default function OwnerRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number *
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="flex items-center space-x-2">
+                    <PhoneIcon className="h-4 w-4" />
+                    <span>Phone Number</span>
+                  </div>
                 </label>
-                <div className="relative">
-                  <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    {...register('phone', { 
-                      required: 'Phone number is required',
-                      pattern: {
-                        value: /^[6-9]\d{9}$/,
-                        message: 'Please enter a valid 10-digit Indian phone number'
-                      }
-                    })}
-                    type="tel"
-                    placeholder="9876543210"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+                <input
+                  {...register('phone', {
+                    required: 'Phone number is required',
+                    pattern: {
+                      value: /^[6-9]\d{9}$/,
+                      message: 'Please enter a valid 10-digit Indian mobile number'
+                    }
+                  })}
+                  type="tel"
+                  placeholder="Enter your mobile number"
+                  className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                />
                 {errors.phone && (
                   <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Tenants will use this number to contact you
+                <p className="mt-1 text-xs text-gray-500">
+                  We&apos;ll use this to connect you with potential tenants
                 </p>
               </div>
 
-              <div>
-                <label className="flex items-start space-x-3">
-                  <input
-                    {...register('agree_terms', { 
-                      required: 'You must agree to the terms and conditions' 
-                    })}
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">
-                    I agree to the{' '}
-                    <a href="/terms" className="text-blue-600 hover:underline">
-                      Terms of Service
-                    </a>{' '}
-                    and{' '}
-                    <a href="/privacy" className="text-blue-600 hover:underline">
-                      Privacy Policy
-                    </a>
-                  </span>
-                </label>
-                {errors.agree_terms && (
-                  <p className="mt-1 text-sm text-red-600">{errors.agree_terms.message}</p>
-                )}
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <h3 className="text-sm font-medium text-blue-900 mb-2">
+                  What happens next?
+                </h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Access to owner dashboard</li>
+                  <li>• Add your first PG listing</li>
+                  <li>• Start receiving booking requests</li>
+                  <li>• Manage your properties easily</li>
+                </ul>
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Registering...' : 'Register as Owner'}
+                {submitting ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Setting up your account...
+                  </div>
+                ) : (
+                  'Complete Registration'
+                )}
               </button>
             </form>
-          </div>
 
-          {/* Footer */}
-          <div className="text-center mt-8">
-            <p className="text-sm text-gray-600">
-              Already registered as an owner?{' '}
-              <a href="/owner/dashboard" className="text-blue-600 hover:underline">
-                Go to Dashboard
-              </a>
-            </p>
+            <div className="mt-6 text-center">
+              <p className="text-xs text-gray-500">
+                By registering, you agree to our{' '}
+                <a href="#" className="text-blue-600 hover:text-blue-500">Terms of Service</a>
+                {' '}and{' '}
+                <a href="#" className="text-blue-600 hover:text-blue-500">Privacy Policy</a>
+              </p>
+            </div>
           </div>
         </div>
       </div>

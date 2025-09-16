@@ -4,55 +4,47 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { signUp, getCurrentUser } from '../../lib/supabaseClient';
-import { 
-  EyeIcon, 
-  EyeSlashIcon, 
+import { SignUpForm } from '../../types';
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  ArrowRightIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  ArrowRightIcon 
+  UserIcon,
+  EnvelopeIcon,
+  LockClosedIcon
 } from '@heroicons/react/24/outline';
-
-interface SignUpForm {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  fullName: string;
-  agreeTerms: boolean;
-}
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { redirect } = router.query;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors }
-  } = useForm<SignUpForm>();
-
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<SignUpForm>();
   const password = watch('password');
 
   useEffect(() => {
     // Check if user is already signed in
-    checkUser();
-  }, []);
+    const checkAuth = async () => {
+      try {
+        const { user } = await getCurrentUser();
+        if (user) {
+          router.push('/');
+        }
+      } catch (_error) {
+        // User not signed in, continue to show sign up form
+      }
+    };
 
-  const checkUser = async () => {
-    const { user } = await getCurrentUser();
-    if (user) {
-      const redirectUrl = typeof redirect === 'string' ? redirect : '/';
-      router.push(redirectUrl);
-    }
-  };
+    checkAuth();
+  }, [router]);
 
-  const onSubmit = async (formData: SignUpForm) => {
-    if (formData.password !== formData.confirmPassword) {
+  const onSubmit = async (data: SignUpForm) => {
+    if (data.password !== data.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
@@ -61,26 +53,19 @@ export default function SignUpPage() {
     setError(null);
 
     try {
-      const { data, error } = await signUp(
-        formData.email, 
-        formData.password,
-        {
-          full_name: formData.fullName
-        }
-      );
-
-      if (error) {
-        throw error;
-      }
-
-      if (data.user) {
-        setSuccess(true);
-        // Note: User might need to verify email before they can sign in
-        // depending on Supabase settings
-      }
-    } catch (error: any) {
+      await signUp(data.email, data.password, {
+        full_name: data.full_name,
+      });
+      
+      setSuccess(true);
+      
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push('/auth/signin');
+      }, 3000);
+    } catch (error) {
       console.error('Sign up error:', error);
-      setError(error.message || 'Failed to create account');
+      setError(error instanceof Error ? error.message : 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -92,24 +77,20 @@ export default function SignUpPage() {
         <Head>
           <title>Account Created - PG Finder</title>
         </Head>
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-          <div className="sm:mx-auto sm:w-full sm:max-w-md">
-            <div className="text-center">
-              <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Account Created Successfully!
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Your account has been created. You can now sign in and start using PG Finder.
-              </p>
-              <Link
-                href="/auth/signin"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Sign In to Your Account
-                <ArrowRightIcon className="ml-2 h-4 w-4" />
-              </Link>
-            </div>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="max-w-md w-full text-center p-8">
+            <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Created Successfully!</h2>
+            <p className="text-gray-600 mb-6">
+              Please check your email to verify your account before signing in.
+            </p>
+            <Link
+              href="/auth/signin"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Continue to Sign In
+              <ArrowRightIcon className="ml-2 h-4 w-4" />
+            </Link>
           </div>
         </div>
       </>
@@ -120,7 +101,7 @@ export default function SignUpPage() {
     <>
       <Head>
         <title>Sign Up - PG Finder</title>
-        <meta name="description" content="Create your PG Finder account" />
+        <meta name="description" content="Create your PG Finder account and start finding perfect accommodations" />
       </Head>
 
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -134,7 +115,7 @@ export default function SignUpPage() {
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
             <Link href="/auth/signin" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to existing account
+              sign in to your existing account
             </Link>
           </p>
         </div>
@@ -149,13 +130,17 @@ export default function SignUpPage() {
                 </div>
               )}
 
+              {/* Full Name */}
               <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-                  Full Name
+                <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">
+                  <div className="flex items-center space-x-2">
+                    <UserIcon className="h-4 w-4" />
+                    <span>Full Name</span>
+                  </div>
                 </label>
                 <div className="mt-1">
                   <input
-                    {...register('fullName', {
+                    {...register('full_name', {
                       required: 'Full name is required',
                       minLength: {
                         value: 2,
@@ -167,15 +152,19 @@ export default function SignUpPage() {
                     className="appearance-none block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white"
                     placeholder="Enter your full name"
                   />
-                  {errors.fullName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.fullName.message}</p>
+                  {errors.full_name && (
+                    <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>
                   )}
                 </div>
               </div>
 
+              {/* Email */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email address
+                  <div className="flex items-center space-x-2">
+                    <EnvelopeIcon className="h-4 w-4" />
+                    <span>Email address</span>
+                  </div>
                 </label>
                 <div className="mt-1">
                   <input
@@ -197,9 +186,13 @@ export default function SignUpPage() {
                 </div>
               </div>
 
+              {/* Password */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
+                  <div className="flex items-center space-x-2">
+                    <LockClosedIcon className="h-4 w-4" />
+                    <span>Password</span>
+                  </div>
                 </label>
                 <div className="mt-1 relative">
                   <input
@@ -232,15 +225,19 @@ export default function SignUpPage() {
                 )}
               </div>
 
+              {/* Confirm Password */}
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm Password
+                  <div className="flex items-center space-x-2">
+                    <LockClosedIcon className="h-4 w-4" />
+                    <span>Confirm Password</span>
+                  </div>
                 </label>
                 <div className="mt-1 relative">
                   <input
                     {...register('confirmPassword', {
                       required: 'Please confirm your password',
-                      validate: value => value === password || 'Passwords do not match'
+                      validate: (value) => value === password || 'Passwords do not match'
                     })}
                     type={showConfirmPassword ? 'text' : 'password'}
                     autoComplete="new-password"
@@ -261,31 +258,6 @@ export default function SignUpPage() {
                 </div>
                 {errors.confirmPassword && (
                   <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="flex items-start space-x-3">
-                  <input
-                    {...register('agreeTerms', {
-                      required: 'You must agree to the terms and conditions'
-                    })}
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">
-                    I agree to the{' '}
-                    <a href="/terms" className="text-blue-600 hover:underline">
-                      Terms of Service
-                    </a>{' '}
-                    and{' '}
-                    <a href="/privacy" className="text-blue-600 hover:underline">
-                      Privacy Policy
-                    </a>
-                  </span>
-                </label>
-                {errors.agreeTerms && (
-                  <p className="mt-1 text-sm text-red-600">{errors.agreeTerms.message}</p>
                 )}
               </div>
 
@@ -322,7 +294,7 @@ export default function SignUpPage() {
                   href="/auth/signin"
                   className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Sign in to existing account
+                  Sign In
                 </Link>
               </div>
             </div>

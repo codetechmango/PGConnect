@@ -79,3 +79,45 @@ export interface FormData {
   latitude?: number;
   longitude?: number;
 }
+
+// Type for form data in auth pages
+export interface SignInForm {
+  email: string;
+  password: string;
+}
+
+export interface SignUpForm {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  full_name: string;
+}
+
+export interface OwnerRegistrationForm {
+  full_name: string;
+  phone: string;
+}
+
+// Type for database errors
+export interface DatabaseError {
+  message: string;
+  details?: string;
+  hint?: string;
+}
+
+// Type for API response
+export interface ApiResponse<T = unknown> {
+  data?: T;
+  error?: string;
+  success: boolean;
+}
+
+// Type for Supabase query results
+export interface SupabaseResponse<T> {
+  data: T[] | T | null;
+  error: {
+    message: string;
+    details?: string;
+    hint?: string;
+  } | null;
+}

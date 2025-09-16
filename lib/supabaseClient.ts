@@ -9,8 +9,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Auth helpers
-export const signUp = async (email: string, password: string, userData?: any) => {
+// Auth helpers with proper typing
+export const signUp = async (email: string, password: string, userData?: Record<string, unknown>) => {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,

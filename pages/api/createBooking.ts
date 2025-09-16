@@ -44,7 +44,7 @@ export default async function handler(
     }
 
     // Verify user exists
-    const { data: userData, error: userError } = await supabaseAdmin
+    const { data: _userData, error: userError } = await supabaseAdmin
       .from('profiles')
       .select('id, full_name, email')
       .eq('id', user_id)

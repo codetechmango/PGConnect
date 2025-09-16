@@ -16,7 +16,7 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 // Helper functions for admin operations
-export const createUserProfile = async (userId: string, profileData: any) => {
+export const createUserProfile = async (userId: string, profileData: Record<string, unknown>) => {
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .insert({
@@ -26,7 +26,7 @@ export const createUserProfile = async (userId: string, profileData: any) => {
   return { data, error };
 };
 
-export const updateUserProfile = async (userId: string, updates: any) => {
+export const updateUserProfile = async (userId: string, updates: Record<string, unknown>) => {
   const { data, error } = await supabaseAdmin
     .from('profiles')
     .update(updates)
@@ -39,7 +39,7 @@ export const deleteUser = async (userId: string) => {
   return { data, error };
 };
 
-export const createBookingAsAdmin = async (bookingData: any) => {
+export const createBookingAsAdmin = async (bookingData: Record<string, unknown>) => {
   const { data, error } = await supabaseAdmin
     .from('bookings')
     .insert(bookingData);

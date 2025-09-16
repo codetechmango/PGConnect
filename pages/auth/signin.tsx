@@ -4,17 +4,13 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { signIn, getCurrentUser } from '../../lib/supabaseClient';
+import { SignInForm } from '../../types';
 import { 
   EyeIcon, 
   EyeSlashIcon, 
-  ExclamationTriangleIcon,
-  ArrowRightIcon 
+  ArrowRightIcon,
+  ExclamationTriangleIcon 
 } from '@heroicons/react/24/outline';
-
-interface SignInForm {
-  email: string;
-  password: string;
-}
 
 export default function SignInPage() {
   const router = useRouter();
@@ -22,42 +18,37 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors }
-  } = useForm<SignInForm>();
+  
+  const { register, handleSubmit, formState: { errors } } = useForm<SignInForm>();
 
   useEffect(() => {
     // Check if user is already signed in
-    checkUser();
-  }, []);
+    const checkAuth = async () => {
+      try {
+        const { user } = await getCurrentUser();
+        if (user) {
+          const redirectUrl = typeof redirect === 'string' ? redirect : '/';
+          router.push(redirectUrl);
+        }
+      } catch (_error) {
+        // User not signed in, continue to show sign in form
+      }
+    };
 
-  const checkUser = async () => {
-    const { user } = await getCurrentUser();
-    if (user) {
-      const redirectUrl = typeof redirect === 'string' ? redirect : '/';
-      router.push(redirectUrl);
-    }
-  };
+    checkAuth();
+  }, [router, redirect]);
 
-  const onSubmit = async (formData: SignInForm) => {
+  const onSubmit = async (data: SignInForm) => {
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error } = await signIn(formData.email, formData.password);
-
-      if (error) {
-        throw error;
-      }
-
-      if (data.user) {
-        const redirectUrl = typeof redirect === 'string' ? redirect : '/';
-        router.push(redirectUrl);
-      }
-    } catch (error: unknown) {
+      await signIn(data.email, data.password);
+      
+      // Redirect to intended page or dashboard
+      const redirectUrl = typeof redirect === 'string' ? redirect : '/';
+      router.push(redirectUrl);
+    } catch (error) {
       console.error('Sign in error:', error);
       setError(error instanceof Error ? error.message : 'Failed to sign in');
     } finally {
@@ -189,7 +180,7 @@ export default function SignInPage() {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Don't have an account?</span>
+                  <span className="px-2 bg-white text-gray-500">Don&apos;t have an account?</span>
                 </div>
               </div>
 
@@ -198,7 +189,7 @@ export default function SignInPage() {
                   href="/auth/signup"
                   className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Create new account
+                  Create Account
                 </Link>
               </div>
             </div>

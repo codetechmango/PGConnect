@@ -73,7 +73,7 @@ export default function ImageUploader({
         const progressKey = `${file.name}-${index}`;
         setUploadProgress(prev => ({ ...prev, [progressKey]: 0 }));
 
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from(bucketName)
           .upload(filePath, file, {
             cacheControl: '3600',
@@ -102,9 +102,9 @@ export default function ImageUploader({
       // Clear progress tracking
       setUploadProgress({});
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
-      setError(error.message || 'Failed to upload images');
+      setError(error instanceof Error ? error.message : 'Failed to upload images');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {

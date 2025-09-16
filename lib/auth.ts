@@ -1,12 +1,7 @@
 import { supabase } from './supabaseClient';
 import { User } from '@supabase/supabase-js';
 
-export interface AuthUser extends User {
-  user_metadata?: {
-    full_name?: string;
-    avatar_url?: string;
-  };
-}
+export type AuthUser = User;
 
 export interface Profile {
   id: string;
@@ -20,12 +15,12 @@ export interface Profile {
 }
 
 // Auth state management
-export const getCurrentUser = async (): Promise<{ user: AuthUser | null; error: any }> => {
+export const getCurrentUser = async (): Promise<{ user: AuthUser | null; error: Error | null }> => {
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     return { user, error };
   } catch (error) {
-    return { user: null, error };
+    return { user: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
@@ -54,7 +49,7 @@ export const signUp = async (
     });
     return { data, error };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
@@ -66,7 +61,7 @@ export const signIn = async (email: string, password: string) => {
     });
     return { data, error };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
@@ -86,7 +81,7 @@ export const resetPassword = async (email: string) => {
     });
     return { data, error };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
@@ -97,12 +92,12 @@ export const updatePassword = async (password: string) => {
     });
     return { data, error };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
 // Profile management
-export const getUserProfile = async (userId: string): Promise<{ profile: Profile | null; error: any }> => {
+export const getUserProfile = async (userId: string): Promise<{ profile: Profile | null; error: Error | null }> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
@@ -112,7 +107,7 @@ export const getUserProfile = async (userId: string): Promise<{ profile: Profile
     
     return { profile: data, error };
   } catch (error) {
-    return { profile: null, error };
+    return { profile: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
@@ -130,7 +125,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<Profile
     
     return { data, error };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
@@ -154,7 +149,7 @@ export const createUserProfile = async (user: AuthUser) => {
     
     return { data, error };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
@@ -175,11 +170,11 @@ export const becomeOwner = async (userId: string, additionalData?: { phone?: str
     
     return { data, error };
   } catch (error) {
-    return { data: null, error };
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
-export const checkOwnerStatus = async (userId: string): Promise<{ isOwner: boolean; error: any }> => {
+export const checkOwnerStatus = async (userId: string): Promise<{ isOwner: boolean; error: Error | null }> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
@@ -189,12 +184,12 @@ export const checkOwnerStatus = async (userId: string): Promise<{ isOwner: boole
     
     return { isOwner: data?.is_owner || false, error };
   } catch (error) {
-    return { isOwner: false, error };
+    return { isOwner: false, error: error instanceof Error ? error : new Error('Unknown error') };
   }
 };
 
 // Auth state listener
-export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
+export const onAuthStateChange = (callback: (event: string, session: unknown) => void) => {
   return supabase.auth.onAuthStateChange(callback);
 };
 
