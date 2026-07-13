@@ -27,44 +27,7 @@ A comprehensive web application for finding and listing Paying Guest (PG) accomm
 - **Forms**: React Hook Form
 - **Deployment**: Vercel-ready
 
-## Quick Start
 
-### 1. Clone the Repository
-```bash
-git clone <your-repo-url>
-cd pg-finder
-```
-
-### 2. Install Dependencies
-```bash
-npm install
-```
-
-### 3. Set Up Supabase
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to Settings > API to get your URL and keys
-3. Run the SQL schema from `supabase-schema.sql` in your Supabase SQL Editor
-4. Create a storage bucket named `pg-images` and make it public
-
-### 4. Environment Variables
-Create a `.env.local` file in the root directory:
-
-```bash
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-
-# Optional: For file uploads
-NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=pg-images
-```
-
-### 5. Run the Development Server
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ## Project Structure
 
@@ -149,16 +112,6 @@ Row Level Security (RLS) is implemented for data protection.
 3. Set environment variables in Vercel dashboard
 4. Deploy automatically
 
-### Environment Variables for Production
-Make sure to set all required environment variables in your deployment platform.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## Security
 
@@ -174,14 +127,5 @@ Make sure to set all required environment variables in your deployment platform.
 - Lazy loading for images
 - Responsive design for all devices
 
-## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Support
-
-For support, email support@pgfinder.com or create an issue in the repository.
-
----
-
-**Happy PG Hunting! 🏠✨**
