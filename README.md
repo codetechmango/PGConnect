@@ -1,4 +1,4 @@
-# PG Finder 🏠
+# PGConnect 🏠
 
 A comprehensive web application for finding and listing Paying Guest (PG) accommodations. Built with Next.js, TypeScript, Tailwind CSS, and Supabase.
 
