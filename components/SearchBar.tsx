@@ -1,313 +1,240 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { MagnifyingGlassIcon, AdjustmentsHorizontalIcon, XMarkIcon, MapPinIcon } from '@heroicons/react/24/outline';
-import { SearchFilters } from '../types';
+import React, { useState } from 'react';
+import { useRouter } from 'next/router';
 
 interface SearchBarProps {
-  onSearch: (filters: SearchFilters) => void;
-  loading?: boolean;
+  initialLocation?: string;
+  initialGender?: string;
+  initialRoomType?: string;
+  initialBudget?: string;
 }
 
-const AMENITIES_OPTIONS = [
-  'WiFi',
-  'AC',
-  'Washing Machine',
-  'TV',
-  'Fridge',
-  'Parking',
-  'Security',
-  'Mess/Food',
-  'Power Backup',
-  'Water Supply',
-  'Gym',
-  'Study Room'
-];
+export const SearchBar: React.FC<SearchBarProps> = ({
+  initialLocation = '',
+  initialGender = 'all',
+  initialRoomType = 'any',
+  initialBudget = '',
+}) => {
+  const router = useRouter();
+  const [gender, setGender] = useState<'all' | 'boys' | 'girls' | 'coliving'>(
+    initialGender as any || 'all'
+  );
+  const [location, setLocation] = useState(initialLocation);
+  const [moveInDate, setMoveInDate] = useState('2025-11-01');
+  const [sharingType, setSharingType] = useState(initialRoomType);
+  const [selectedBudgetRange, setSelectedBudgetRange] = useState(initialBudget || '8k-15k');
 
-const ROOM_TYPES = [
-  { value: '', label: 'All Room Types' },
-  { value: 'single', label: 'Single Room' },
-  { value: 'double', label: 'Double Sharing' },
-  { value: 'triple', label: 'Triple Sharing' },
-  { value: 'dormitory', label: 'Dormitory' }
-];
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const queryParams = new URLSearchParams();
 
-const GENDER_PREFERENCES = [
-  { value: '', label: 'Any Gender' },
-  { value: 'male', label: 'Male Only' },
-  { value: 'female', label: 'Female Only' },
-  { value: 'any', label: 'Mixed/Any' }
-];
+    if (location.trim()) queryParams.set('q', location.trim());
+    if (gender !== 'all') {
+      const gMap: Record<string, string> = {
+        boys: 'male',
+        girls: 'female',
+        coliving: 'any',
+      };
+      queryParams.set('gender', gMap[gender] || gender);
+    }
+    if (sharingType !== 'any') {
+      queryParams.set('room_type', sharingType);
+    }
+    if (selectedBudgetRange === 'under-8k') {
+      queryParams.set('maxPrice', '8000');
+    } else if (selectedBudgetRange === '8k-15k') {
+      queryParams.set('minPrice', '8000');
+      queryParams.set('maxPrice', '15000');
+    } else if (selectedBudgetRange === 'above-15k') {
+      queryParams.set('minPrice', '15000');
+    }
 
-const QUICK_PRICE_RANGES = [
-  { label: 'Under ₹10K', min: 0, max: 10000 },
-  { label: '₹10K - ₹15K', min: 10000, max: 15000 },
-  { label: '₹15K - ₹25K', min: 15000, max: 25000 },
-  { label: 'Above ₹25K', min: 25000, max: null }
-];
-
-export default function SearchBar({ onSearch, loading = false }: SearchBarProps) {
-  const [showFilters, setShowFilters] = useState(false);
-  const { register, handleSubmit, watch, setValue, reset } = useForm<SearchFilters>();
-
-  const onSubmit = (data: SearchFilters) => {
-    // Clean up the data
-    const filters: SearchFilters = {
-      ...data,
-      minPrice: data.minPrice || undefined,
-      maxPrice: data.maxPrice || undefined,
-      roomType: data.roomType || undefined,
-      genderPreference: data.genderPreference || undefined,
-      amenities: data.amenities?.filter(Boolean) || []
-    };
-    onSearch(filters);
-  };
-
-  const clearFilters = () => {
-    reset();
-    onSearch({});
-  };
-
-  const watchedAmenities = watch('amenities') || [];
-  const watchedCity = watch('city');
-  const watchedMinPrice = watch('minPrice');
-  const watchedMaxPrice = watch('maxPrice');
-
-  const toggleAmenity = (amenity: string) => {
-    const current = watchedAmenities as string[];
-    const updated = current.includes(amenity)
-      ? current.filter(a => a !== amenity)
-      : [...current, amenity];
-    setValue('amenities', updated);
-  };
-
-  const setQuickPriceRange = (range: typeof QUICK_PRICE_RANGES[0]) => {
-    setValue('minPrice', range.min);
-    setValue('maxPrice', range.max || undefined);
-  };
-
-  const hasFilters = () => {
-    return !!(watchedCity || watchedMinPrice || watchedMaxPrice || watchedAmenities.length > 0);
+    router.push(`/search?${queryParams.toString()}`);
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Main Search Bar */}
-        <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* City Search Input */}
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <MapPinIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                {...register('city')}
-                type="text"
-                placeholder="Enter city name (e.g., Mumbai, Delhi, Bangalore)"
-                className="w-full pl-12 pr-4 py-4 text-lg text-gray-900 placeholder-gray-500 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white shadow-sm"
-              />
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center space-x-2 px-6 py-4 rounded-xl transition-all duration-200 font-medium ${
-                  showFilters 
-                    ? 'bg-blue-600 text-white shadow-lg' 
-                    : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <AdjustmentsHorizontalIcon className="h-5 w-5" />
-                <span className="hidden sm:inline">Filters</span>
-                {hasFilters() && (
-                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    !
-                  </span>
-                )}
-              </button>
-              
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center space-x-2 px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg font-medium"
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                ) : (
-                  <MagnifyingGlassIcon className="h-5 w-5" />
-                )}
-                <span>{loading ? 'Searching...' : 'Search'}</span>
-              </button>
-            </div>
+    <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-outline-variant/30">
+      <form onSubmit={handleSearchSubmit}>
+        {/* Category Toggles (Gender Selection) */}
+        <div className="flex items-center justify-between flex-wrap gap-3 pb-4 mb-4 bg-surface-container-low/60 p-2.5 rounded-xl border border-outline-variant/20">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-on-surface-variant mr-1 hidden sm:inline">
+              Preference:
+            </span>
+            <button
+              type="button"
+              onClick={() => setGender('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                gender === 'all'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+              }`}
+            >
+              Any
+            </button>
+            <button
+              type="button"
+              onClick={() => setGender('boys')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                gender === 'boys'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+              }`}
+            >
+              Boys Only
+            </button>
+            <button
+              type="button"
+              onClick={() => setGender('girls')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                gender === 'girls'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+              }`}
+            >
+              Girls Only
+            </button>
+            <button
+              type="button"
+              onClick={() => setGender('coliving')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                gender === 'coliving'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+              }`}
+            >
+              Co-Living / Unisex
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-secondary text-xs font-bold">
+            <span className="material-symbols-outlined text-sm">security</span>
+            <span>CCTV &amp; Biometric Guarded</span>
           </div>
         </div>
 
-        {/* Advanced Filters */}
-        {showFilters && (
-          <div className="border-t border-gray-200 bg-gray-50">
-            <div className="p-6 space-y-8">
-              {/* Quick Price Filters */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-2">
-                    Quick
-                  </span>
-                  Price Ranges
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {QUICK_PRICE_RANGES.map((range, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => setQuickPriceRange(range)}
-                      className="px-4 py-3 text-sm font-medium text-gray-700 bg-white hover:bg-blue-50 hover:text-blue-700 border border-gray-200 rounded-lg transition-all duration-200"
-                    >
-                      {range.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Custom Price Range */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">Custom Price Range</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Min Price (₹/month)
-                    </label>
-                    <input
-                      {...register('minPrice', { valueAsNumber: true })}
-                      type="number"
-                      placeholder="5,000"
-                      min="0"
-                      className="w-full px-4 py-3 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Max Price (₹/month)
-                    </label>
-                    <input
-                      {...register('maxPrice', { valueAsNumber: true })}
-                      type="number"
-                      placeholder="25,000"
-                      min="0"
-                      className="w-full px-4 py-3 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Room Type and Gender */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">Preferences</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Room Type
-                    </label>
-                    <select
-                      {...register('roomType')}
-                      className="w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
-                    >
-                      {ROOM_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Gender Preference
-                    </label>
-                    <select
-                      {...register('genderPreference')}
-                      className="w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
-                    >
-                      {GENDER_PREFERENCES.map(pref => (
-                        <option key={pref.value} value={pref.value}>
-                          {pref.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Amenities */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">
-                  Amenities 
-                  {watchedAmenities.length > 0 && (
-                    <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                      {watchedAmenities.length} selected
-                    </span>
-                  )}
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {AMENITIES_OPTIONS.map(amenity => (
-                    <label
-                      key={amenity}
-                      className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg border-2 transition-all duration-200 ${
-                        watchedAmenities.includes(amenity)
-                          ? 'bg-blue-50 border-blue-200 text-blue-700'
-                          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={watchedAmenities.includes(amenity)}
-                        onChange={() => toggleAmenity(amenity)}
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium">{amenity}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Filter Actions */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200">
-                <div className="flex items-center space-x-3">
-                  {hasFilters() && (
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
-                    >
-                      <XMarkIcon className="h-4 w-4" />
-                      <span>Clear All</span>
-                    </button>
-                  )}
-                </div>
-                
-                <div className="flex space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowFilters(false)}
-                    className="px-6 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all duration-200 font-medium"
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-8 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 shadow-lg font-medium"
-                  >
-                    Apply Filters
-                  </button>
-                </div>
-              </div>
+        {/* Filter Grid Form */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 lg:gap-4 items-end">
+          {/* Location Input */}
+          <div className="md:col-span-4 flex flex-col gap-1.5 relative">
+            <label htmlFor="locationInput" className="text-xs font-bold text-on-surface flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm text-primary">pin_drop</span>
+              <span>Location / Tech Park</span>
+            </label>
+            <div className="relative flex items-center">
+              <input
+                id="locationInput"
+                type="text"
+                placeholder="e.g. Koramangala, Bengaluru"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="w-full h-11 pl-3 pr-8 rounded-xl bg-surface-container-low text-on-surface text-sm border border-outline-variant/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary shadow-inner"
+              />
+              <span className="material-symbols-outlined text-on-surface-variant absolute right-2.5 pointer-events-none text-base">
+                expand_more
+              </span>
             </div>
           </div>
-        )}
+
+          {/* Move-in Date Picker */}
+          <div className="md:col-span-3 flex flex-col gap-1.5">
+            <label htmlFor="moveInDate" className="text-xs font-bold text-on-surface flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm text-primary">calendar_month</span>
+              <span>Move-in Date</span>
+            </label>
+            <input
+              id="moveInDate"
+              type="date"
+              value={moveInDate}
+              onChange={(e) => setMoveInDate(e.target.value)}
+              className="w-full h-11 px-3 rounded-xl bg-surface-container-low text-on-surface text-sm border border-outline-variant/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary shadow-inner cursor-pointer"
+            />
+          </div>
+
+          {/* Sharing Type Selector */}
+          <div className="md:col-span-3 flex flex-col gap-1.5">
+            <label htmlFor="sharingType" className="text-xs font-bold text-on-surface flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm text-primary">bed</span>
+              <span>Room Sharing</span>
+            </label>
+            <div className="relative flex items-center">
+              <select
+                id="sharingType"
+                value={sharingType}
+                onChange={(e) => setSharingType(e.target.value)}
+                className="w-full h-11 pl-3 pr-8 rounded-xl bg-surface-container-low text-on-surface text-sm border border-outline-variant/30 appearance-none focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary shadow-inner cursor-pointer"
+              >
+                <option value="any">Any (Single, Double, Triple)</option>
+                <option value="single">Single Private Room</option>
+                <option value="double">Twin Sharing (2-Bed)</option>
+                <option value="triple">Triple Sharing (Budget)</option>
+              </select>
+              <span className="material-symbols-outlined text-on-surface-variant absolute right-2.5 pointer-events-none text-base">
+                unfold_more
+              </span>
+            </div>
+          </div>
+
+          {/* Submit Search Button */}
+          <div className="md:col-span-2 flex flex-col justify-end">
+            <button
+              type="submit"
+              className="w-full h-11 rounded-xl bg-primary hover:bg-primary-container text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]"
+            >
+              <span className="material-symbols-outlined text-lg">search</span>
+              <span>Find PGs</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Budget Quick-Pills Strip */}
+        <div className="mt-4 pt-3 flex flex-wrap items-center justify-between gap-3 bg-surface-container-low/40 px-3 py-2 rounded-xl border border-outline-variant/20">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+              Budget:
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setSelectedBudgetRange('under-8k')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                  selectedBudgetRange === 'under-8k'
+                    ? 'bg-primary text-white'
+                    : 'bg-surface-container text-on-surface-variant hover:bg-primary-fixed hover:text-on-primary-fixed'
+                }`}
+              >
+                Under ₹8,000
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedBudgetRange('8k-15k')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                  selectedBudgetRange === '8k-15k'
+                    ? 'bg-primary text-white'
+                    : 'bg-surface-container text-on-surface-variant hover:bg-primary-fixed hover:text-on-primary-fixed'
+                }`}
+              >
+                ₹8,000 - ₹15,000
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedBudgetRange('above-15k')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                  selectedBudgetRange === 'above-15k'
+                    ? 'bg-primary text-white'
+                    : 'bg-surface-container text-on-surface-variant hover:bg-primary-fixed hover:text-on-primary-fixed'
+                }`}
+              >
+                ₹15,000 - ₹25,000+
+              </button>
+            </div>
+          </div>
+
+          <span className="text-xs text-secondary font-semibold flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">flash_on</span>
+            <span>4,820 Verified Rooms Available Today</span>
+          </span>
+        </div>
       </form>
     </div>
   );
-}
+};

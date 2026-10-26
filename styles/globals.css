@@ -1,62 +1,273 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 @import "tailwindcss";
+@config "../tailwind.config.js";
 
-/* Base styles for modern typography and layout */
+@theme {
+  --color-primary: #00236f;
+  --color-primary-container: #1e3a8a;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #90a8ff;
+  --color-primary-fixed: #dce1ff;
+  --color-primary-fixed-dim: #b6c4ff;
+  --color-on-primary-fixed: #00164e;
+  --color-on-primary-fixed-variant: #264191;
+
+  --color-secondary: #006a61;
+  --color-secondary-container: #86f2e4;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #006f66;
+  --color-secondary-fixed: #89f5e7;
+  --color-secondary-fixed-dim: #6bd8cb;
+  --color-on-secondary-fixed: #00201d;
+  --color-on-secondary-fixed-variant: #005049;
+
+  --color-tertiary: #3e2400;
+  --color-tertiary-container: #5c3800;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #ef9900;
+  --color-tertiary-fixed: #ffddb8;
+  --color-tertiary-fixed-dim: #ffb95f;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  --color-background: #faf8ff;
+  --color-on-background: #131b2e;
+  --color-surface: #faf8ff;
+  --color-on-surface: #131b2e;
+  --color-surface-variant: #dae2fd;
+  --color-on-surface-variant: #444651;
+  --color-surface-dim: #d2d9f4;
+  --color-surface-bright: #faf8ff;
+  --color-surface-tint: #4059aa;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f3ff;
+  --color-surface-container: #eaedff;
+  --color-surface-container-high: #e2e7ff;
+  --color-surface-container-highest: #dae2fd;
+  --color-inverse-surface: #283044;
+  --color-inverse-on-surface: #eef0ff;
+  --color-inverse-primary: #b6c4ff;
+
+  --color-outline: #757682;
+  --color-outline-variant: #c5c5d3;
+
+  --font-display-hero: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-headline-xl: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-headline-lg: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-headline-md: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-headline-sm: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-title-card: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body-lg: "Inter", system-ui, sans-serif;
+  --font-body-md: "Inter", system-ui, sans-serif;
+  --font-body-sm: "Inter", system-ui, sans-serif;
+}
+
+:root {
+  --primary: #00236f;
+  --primary-container: #1e3a8a;
+  --on-primary: #ffffff;
+  --secondary: #006a61;
+  --secondary-container: #86f2e4;
+  --on-secondary: #ffffff;
+  --background: #faf8ff;
+  --surface: #faf8ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f2f3ff;
+  --surface-container: #eaedff;
+  --on-surface: #131b2e;
+  --on-surface-variant: #444651;
+  --outline: #757682;
+  --outline-variant: #c5c5d3;
+}
+
 html {
-  font-feature-settings: "rlig" 1, "calt" 1;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #f9fafb; /* gray-50 */
-  color: #111827; /* gray-900 */
+  background-color: #faf8ff;
+  color: #131b2e;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom utilities for text truncation */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+h1, h2, h3, h4, h5, h6, .brand-font {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga';
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+/* Tabular numerals for price consistency */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Focus styles for better accessibility */
-*:focus {
-  outline: 2px solid #3b82f6; /* blue-500 */
-  outline-offset: 2px;
-}
-
-/* Custom scrollbar styles */
+/* Custom delicate scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9; /* slate-100 */
+  background: #f2f3ff;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1; /* slate-300 */
-  border-radius: 4px;
+  background: #c5c5d3;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; /* slate-400 */
+  background: #757682;
+}
+
+/* =========================================================================
+   INTERACTIVE BUTTON & CARD ENHANCEMENTS
+   ========================================================================= */
+
+/* Primary Vibrant Buttons (e.g. Sign In, Sign Up, Search, Book Now, Publish) */
+.btn-primary, 
+button.bg-primary, 
+a.bg-primary {
+  background-color: #00236f !important;
+  color: #ffffff !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 2px 8px -1px rgba(0, 35, 111, 0.25), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.btn-primary:hover, 
+button.bg-primary:hover, 
+a.bg-primary:hover {
+  background-color: #1e3a8a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px -2px rgba(0, 35, 111, 0.35), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-primary:active, 
+button.bg-primary:active, 
+a.bg-primary:active {
+  background-color: #00164e !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 3px rgba(0, 35, 111, 0.3) !important;
+}
+
+/* Secondary Vibrant Buttons & Pills (Emerald / Teal verification actions) */
+.btn-secondary,
+button.bg-secondary,
+a.bg-secondary {
+  background-color: #006a61 !important;
+  color: #ffffff !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 2px 8px -1px rgba(0, 106, 97, 0.25) !important;
+}
+
+.btn-secondary:hover,
+button.bg-secondary:hover,
+a.bg-secondary:hover {
+  background-color: #005049 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px -2px rgba(0, 106, 97, 0.35) !important;
+}
+
+/* Interactive Input Fields */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  border-color: #d1d5db;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #00236f !important;
+  box-shadow: 0 0 0 3px rgba(0, 35, 111, 0.15) !important;
+}
+
+/* Cards & Elevated Containers */
+.card-elevated,
+.property-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(197, 197, 211, 0.5);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-elevated:hover,
+.property-card:hover {
+  border-color: rgba(0, 35, 111, 0.3);
+  box-shadow: 0 10px 25px -5px rgba(0, 35, 111, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  transform: translateY(-2px);
+}
+
+/* Category & Gender Badges */
+.badge-verified {
+  background-color: #86f2e4 !important;
+  color: #004d46 !important;
+  font-weight: 700;
+}
+
+.badge-boys {
+  background-color: #dce1ff !important;
+  color: #00164e !important;
+  font-weight: 700;
+}
+
+.badge-girls {
+  background-color: #fce7f3 !important;
+  color: #831843 !important;
+  font-weight: 700;
+}
+
+.badge-coliving {
+  background-color: #ccfbf1 !important;
+  color: #115e59 !important;
+  font-weight: 700;
+}
+
+/* Disabled button states */
+button:disabled,
+input:disabled,
+select:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+/* Focus Visible */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #00236f !important;
+  outline-offset: 2px !important;
 }

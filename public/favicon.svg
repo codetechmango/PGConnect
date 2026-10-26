@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="50%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="100%" stop-color="#0D9488"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background Rounded Squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Building / Home Modern Icon -->
+  <g filter="url(#shadow)" fill="#FFFFFF">
+    <!-- Main Tower -->
+    <path d="M128 416V168c0-13.25 10.75-24 24-24h136c13.25 0 24 10.75 24 24v248H128z" opacity="0.95"/>
+    <!-- Angled Roof Accent -->
+    <path d="M112 176l112-88 112 88v16H112v-16z"/>
+    <!-- Windows Matrix (3x3 grid) -->
+    <rect x="164" y="196" width="32" height="32" rx="6" fill="#1E3A8A"/>
+    <rect x="216" y="196" width="32" height="32" rx="6" fill="#1E3A8A"/>
+    <rect x="164" y="248" width="32" height="32" rx="6" fill="#1E3A8A"/>
+    <rect x="216" y="248" width="32" height="32" rx="6" fill="#1E3A8A"/>
+    <rect x="164" y="300" width="32" height="32" rx="6" fill="#1E3A8A"/>
+    <rect x="216" y="300" width="32" height="32" rx="6" fill="#1E3A8A"/>
+    <!-- Entrance Archway -->
+    <path d="M184 416v-56c0-11 9-20 20-20h24c11 0 20 9 20 20v56h-64z" fill="#0F172A"/>
+
+    <!-- Side Wing -->
+    <path d="M312 256h64c8.8 0 16 7.2 16 16v144h-80V256z" opacity="0.85"/>
+    <rect x="336" y="284" width="24" height="24" rx="4" fill="#1E3A8A"/>
+    <rect x="336" y="328" width="24" height="24" rx="4" fill="#1E3A8A"/>
+  </g>
+
+  <!-- Verified Shield / Checkmark Badge -->
+  <g transform="translate(340, 96)">
+    <circle cx="48" cy="48" r="44" fill="url(#tealGrad)" stroke="#FFFFFF" stroke-width="8"/>
+    <path d="M34 49l10 10 20-20" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
